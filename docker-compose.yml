@@ -1,0 +1,11 @@
+services:
+  drip:
+    image: ghcr.io/bfpimentel/drip:latest
+    container_name: drip
+    restart: unless-stopped
+    ports:
+      - "7111:7111"
+    env_file: .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data

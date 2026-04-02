@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>drip</title>
+    <link rel="icon" type="image/png" href="/static/drip.png">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Victor+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js');
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Victor Mono', monospace;
+            background: #000;
+            color: #fff;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        header img {
+            width: 32px;
+            height: 32px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .upload-zone {
+            border: 2px dashed #fff;
+            padding: 60px 30px;
+            margin-bottom: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .upload-zone:hover {
+            border-color: #666;
+        }
+        .upload-zone.dragover {
+            border-color: #fff;
+            background: #111;
+        }
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+        .upload-zone-text {
+            color: #666;
+            font-size: 14px;
+        }
+        .upload-zone.uploading {
+            border-color: #666;
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .file-list {
+            list-style: none;
+        }
+        .file-item {
+            border-bottom: 1px solid #333;
+            padding: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .file-item.removing {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+        .file-info h3 {
+            font-size: 14px;
+            font-weight: 400;
+            margin-bottom: 5px;
+        }
+        .file-meta {
+            font-size: 11px;
+            color: #666;
+        }
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            font-size: 12px;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: 'Victor Mono', monospace;
+        }
+        .btn:hover {
+            background: #ccc;
+        }
+        .btn-delete {
+            background: #000;
+            color: #fff;
+            border: 1px solid #fff;
+        }
+        .btn-delete:hover {
+            background: #fff;
+            color: #000;
+        }
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/static/drip.png" alt="drip">
+        <h1>drip</h1>
+    </header>
+    
+    <div class="upload-zone" id="dropZone">
+        <input type="file" name="file" id="fileInput">
+        <div class="upload-zone-text">drop files here or click to upload</div>
+    </div>
+    
+    <div id="fileListContainer">
+        <div class="empty">loading...</div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileListContainer = document.getElementById('fileListContainer');
+
+        let currentFiles = new Map();
+
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+                renderFiles(files);
+            } catch (error) {
+                fileListContainer.innerHTML = '<div class="empty">error loading files</div>';
+            }
+        }
+
+        function createFileElement(file) {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.dataset.fileId = file.id;
+            li.innerHTML = `
+                <div class="file-info">
+                    <h3>${escapeHtml(file.filename)}</h3>
+                    <div class="file-meta">
+                        uploaded: ${file.uploaded_at} | 
+                        expires: ${file.expires_at}
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="/download/${file.id}" class="btn">download</a>
+                    <button class="btn btn-delete" onclick="deleteFile('${file.id}')">delete</button>
+                </div>
+            `;
+            return li;
+        }
+
+        function renderFiles(files) {
+            const newFileIds = new Set(files.map(f => f.id));
+            const oldFileIds = new Set(currentFiles.keys());
+
+            // Animate out removed files
+            oldFileIds.forEach(id => {
+                if (!newFileIds.has(id)) {
+                    const element = currentFiles.get(id);
+                    element.classList.add('removing');
+                    setTimeout(() => {
+                        element.remove();
+                        currentFiles.delete(id);
+                    }, 300);
+                }
+            });
+
+            // Handle new or existing files
+            const list = document.querySelector('.file-list') || document.createElement('ul');
+            if (!list.className) {
+                list.className = 'file-list';
+                fileListContainer.innerHTML = '';
+                fileListContainer.appendChild(list);
+            }
+
+            if (files.length === 0 && oldFileIds.size === 0) {
+                fileListContainer.innerHTML = '<div class="empty">no files uploaded yet</div>';
+                currentFiles.clear();
+                return;
+            }
+
+            // Add new files
+            files.forEach((file, index) => {
+                if (!oldFileIds.has(file.id)) {
+                    const element = createFileElement(file);
+                    // Insert at correct position
+                    if (index < list.children.length) {
+                        list.insertBefore(element, list.children[index]);
+                    } else {
+                        list.appendChild(element);
+                    }
+                    currentFiles.set(file.id, element);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function uploadFile(file) {
+            dropZone.classList.add('uploading');
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+            } finally {
+                dropZone.classList.remove('uploading');
+                fileInput.value = '';
+            }
+        }
+
+        async function deleteFile(fileId) {
+            const element = currentFiles.get(fileId);
+            if (element) {
+                element.classList.add('removing');
+                setTimeout(async () => {
+                    try {
+                        await fetch(`/delete/${fileId}`, {
+                            method: 'POST'
+                        });
+                    } catch (error) {
+                        console.error('delete failed:', error);
+                    }
+                }, 300);
+            }
+        }
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadFile(fileInput.files[0]);
+            }
+        });
+
+        const eventSource = new EventSource('/events');
+        eventSource.onmessage = (e) => {
+            const event = JSON.parse(e.data);
+            if (event.type === 'refresh') {
+                loadFiles();
+            }
+        };
+
+        eventSource.onerror = () => {
+            console.log('sse connection lost, reconnecting...');
+        };
+
+        loadFiles();
+    </script>
+</body>
+</html>
