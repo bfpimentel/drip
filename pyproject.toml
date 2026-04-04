@@ -4,11 +4,13 @@ version = "0.1.0"
 description = "Simple file upload server with auto-expiration"
 dependencies = [
     "flask>=3.0.0",
-    "python-dotenv>=1.0.0",
 ]
 requires-python = ">=3.10"
 
-[project.scripts]
-server = "main:app"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.uv]
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+

@@ -1,20 +1,16 @@
-FROM python:3.12-slim
+FROM docker.io/library/python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+COPY pyproject.toml ./
+COPY app.py ./
+COPY templates/ ./templates/
+COPY static/ ./static/
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+RUN pip install .
 
-COPY pyproject.toml .
-RUN uv sync --no-dev
+RUN mkdir -p /app/uploads
 
-COPY . .
-COPY .env.prod .env
+EXPOSE 7123
 
-EXPOSE 7111
-
-CMD ["uv", "run", "python", "main.py"]
+CMD ["python", "app.py"]

@@ -1,4 +1,6 @@
 .venv
 .direnv
-.env
 __pycache__
+
+docker-compose.yml
+uv.lock

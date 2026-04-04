@@ -15,20 +15,18 @@ import time
 import threading
 from datetime import datetime, timedelta
 from threading import Lock
-from dotenv import load_dotenv
 
-load_dotenv()
+UPLOAD_DIR = "/app/uploads"
+METADATA_FILE = f"{UPLOAD_DIR}/uploaded.json"
 
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
-METADATA_FILE = os.getenv("METADATA_FILE", "uploaded.json")
-FILE_LIFESPAN_HOURS = int(os.getenv("FILE_LIFESPAN_HOURS", "1"))
-EXPIRY_CHECK_INTERVAL = int(os.getenv("EXPIRY_CHECK_INTERVAL", "30"))
-FLASK_HOST = os.getenv("FLASK_RUN_HOST", "0.0.0.0")
-FLASK_PORT = int(os.getenv("FLASK_RUN_PORT", "7111"))
-FLASK_DEBUG = os.getenv("FLASK_ENV", "development") == "development"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+FILE_LIFESPAN_HOURS = 1
+EXPIRY_CHECK_INTERVAL = 30
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
 metadata_lock = Lock()
 
 clients = []
@@ -225,4 +223,4 @@ def delete(file_id):
 
 
 if __name__ == "__main__":
-    app.run(host=FLASK_HOST, port=FLASK_PORT, debug=FLASK_DEBUG, threaded=True)
+    app.run(host="0.0.0.0", port=7123, debug=False, threaded=True)
