@@ -91,7 +91,6 @@ def expiry_checker():
 
 
 def clear_all_on_startup():
-    # Delete all files inside uploads directory (not the directory itself, for Docker volumes)
     if os.path.exists(UPLOAD_DIR):
         for filename in os.listdir(UPLOAD_DIR):
             filepath = os.path.join(UPLOAD_DIR, filename)
@@ -100,15 +99,13 @@ def clear_all_on_startup():
                     os.remove(filepath)
             except Exception:
                 pass
-    
-    # Delete metadata file
+
     if os.path.exists(METADATA_FILE):
         try:
             os.remove(METADATA_FILE)
         except Exception:
             pass
-    
-    # Create uploads directory if it doesn't exist
+
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
