@@ -23,6 +23,6 @@ services:
 
 The app can be installed as a PWA. Use a reverse proxy (nginx, traefik, caddy) with HTTPS to enable the install prompt.
 
-## License
+## Screenshots
 
-MIT
+![drip.png](./resources/drip.png)
