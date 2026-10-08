@@ -1,5 +1,5 @@
-const CACHE_NAME = "drip-v2";
-const urlsToCache = ["/", "/static/manifest.json", "/static/drip.png"];
+const CACHE_NAME = "drip-v3";
+const urlsToCache = ["/", "/static/manifest.json", "/static/drip.svg", "/static/icon.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

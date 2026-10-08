@@ -1,6 +1,12 @@
-# drip
+<p align="center">
+  <img src="./static/icon.svg" alt="drip logo" width="96" />
+</p>
 
-A stupid simple self-hosted drop for files and text, with real-time updates and auto-expiration.
+<h1 align="center">drip</h1>
+
+<p align="center">
+  A stupid simple self-hosted drop for files and text, with real-time updates and auto-expiration.
+</p>
 
 - Drop, paste or pick files (several at once) with upload progress
 - Paste plain text to keep it as a note, and copy it back with one click

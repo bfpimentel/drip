@@ -41,7 +41,7 @@ jobs:
           tag="${GITHUB_REF_NAME#v}"
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)"
           if [ "$tag" != "$version" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match pyproject.toml version $version"
+            echo "::error::tag version $tag (from $GITHUB_REF_NAME) does not match pyproject.toml version $version"
             exit 1
           fi
       - name: Set up QEMU
