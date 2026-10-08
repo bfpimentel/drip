@@ -3,14 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0c0e" />
     <title>drip</title>
     <link rel="icon" type="image/png" href="/static/drip.png" />
     <link rel="manifest" href="/static/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Victor+Mono:wght@400;600&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/static/fonts/iosevka-latin-500-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/static/fonts/geist-sans-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
     <script>
       if ("serviceWorker" in navigator) {
@@ -25,225 +34,1004 @@
       }
     </script>
     <style>
+      @font-face {
+        font-family: "Iosevka";
+        src: url("/static/fonts/iosevka-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Iosevka";
+        src: url("/static/fonts/iosevka-latin-500-normal.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Iosevka";
+        src: url("/static/fonts/iosevka-latin-600-normal.woff2") format("woff2");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Iosevka";
+        src: url("/static/fonts/iosevka-latin-400-italic.woff2") format("woff2");
+        font-weight: 400;
+        font-style: italic;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Geist";
+        src: url("/static/fonts/geist-sans-latin-400-normal.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Geist";
+        src: url("/static/fonts/geist-sans-latin-500-normal.woff2") format("woff2");
+        font-weight: 500;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      :root {
+        --bg: #0b0c0e;
+        --surface: #101215;
+        --surface-raised: #15181c;
+        --surface-hover: #121418;
+        --border: #23272e;
+        --border-strong: #333842;
+        --divider: #181b20;
+        --text: #ecedee;
+        --text-soft: #c5c9ce;
+        --text-muted: #9ba1a9;
+        --text-faint: #8a9099;
+        --accent: #6cc5ff;
+        --warn: #ffb454;
+        --danger: #ff8080;
+        --mono: "Iosevka", ui-monospace, "SF Mono", Menlo, monospace;
+        --sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+      }
+
       * {
-        margin: 0;
-        padding: 0;
         box-sizing: border-box;
       }
-      body {
-        font-family: "Victor Mono", monospace;
-        background: #000;
-        color: #fff;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 40px 20px;
+      html {
+        background: var(--bg);
       }
-      header {
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
+      }
+      p {
+        margin: 0;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      svg {
+        display: block;
+      }
+      .mono {
+        font-family: var(--mono);
+      }
+
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 40px 24px 48px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      /* header */
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand {
         display: flex;
         align-items: center;
         gap: 12px;
-        margin-bottom: 30px;
       }
-      header img {
-        width: 32px;
-        height: 32px;
+      .brand img {
+        width: 28px;
+        height: 28px;
       }
-      h1 {
-        font-size: 24px;
+      .word {
+        font-family: var(--mono);
         font-weight: 600;
+        font-size: 24px;
+        letter-spacing: -0.01em;
       }
-      .upload-options {
+      .live {
         display: flex;
-        justify-content: flex-end;
         align-items: center;
         gap: 8px;
-        margin-bottom: 12px;
-        font-size: 12px;
-        color: #666;
+        font-size: 13px;
+        color: var(--text-muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px 6px 10px;
       }
-      .upload-options select {
-        background: #000;
-        color: #fff;
-        border: 1px solid #fff;
-        padding: 4px 8px;
-        font-size: 12px;
-        font-family: "Victor Mono", monospace;
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--text-faint);
       }
-      .upload-zone {
+      .live.on .dot {
+        background: var(--accent);
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+        }
+        50% {
+          box-shadow: 0 0 0 5px transparent;
+        }
+      }
+
+      /* upload card */
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        background: var(--surface);
+      }
+      .drop {
         position: relative;
-        border: 2px dashed #fff;
-        padding: 60px 30px;
-        margin-bottom: 40px;
-        text-align: center;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 28px 26px;
+        border: 1px dashed var(--border-strong);
+        border-radius: 12px;
+        background: transparent;
+        text-align: left;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
       }
-      .upload-zone:hover {
-        border-color: #666;
+      .drop:hover {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 5%, transparent);
       }
-      .upload-zone.dragover {
-        border-color: #fff;
-        background: #111;
+      .drop:hover .bubble {
+        transform: translateY(-2px);
       }
-      .upload-zone input[type="file"] {
+      .drop.busy {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+        background: transparent;
+        cursor: progress;
+      }
+      .drop.failed {
+        border-style: solid;
+        border-color: color-mix(in srgb, var(--warn) 55%, transparent);
+        background: transparent;
+      }
+      .drop.failed .bubble {
+        color: var(--warn);
+        background: color-mix(in srgb, var(--warn) 14%, transparent);
+      }
+      .drop > :not(.water) {
+        position: relative;
+      }
+      .water {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0;
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        transition: width 0.15s linear;
+      }
+      .drop.busy .water {
+        border-right: 2px solid var(--accent);
+      }
+      .bubble {
+        width: 52px;
+        height: 52px;
+        flex: none;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 13%, transparent);
+        transition: transform 0.2s;
+      }
+      .drop-title,
+      .drop-sub {
+        display: block;
+      }
+      .drop-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+      .drop-sub {
+        font-size: 14px;
+        color: var(--text-muted);
+      }
+      .drop-status .drop-sub {
+        font-family: var(--mono);
+        color: var(--text-soft);
+      }
+      .u {
+        color: var(--text);
+        text-decoration: underline;
+        text-decoration-color: var(--accent);
+        text-underline-offset: 3px;
+      }
+      kbd {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-soft);
+        border: 1px solid #2a2f37;
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        padding: 1px 5px;
+        background: var(--surface-raised);
+      }
+      .keys {
+        white-space: nowrap;
+      }
+      .touch-only {
         display: none;
       }
-      .upload-zone-text {
-        color: #666;
-        font-size: 14px;
+      @media (hover: none) and (pointer: coarse) {
+        .touch-only {
+          display: inline;
+        }
+        .pointer-only {
+          display: none;
+        }
       }
-      .upload-zone.uploading {
-        border-color: #666;
-        opacity: 0.5;
+      .foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        padding: 6px 16px 14px 22px;
+      }
+      .keep {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .seg {
+        display: flex;
+        gap: 2px;
+        padding: 3px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg);
+      }
+      .seg button {
+        font-family: var(--mono);
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-muted);
+        background: transparent;
+        border: 0;
+        border-radius: 7px;
+        padding: 0 12px;
+        height: 30px;
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .seg button:hover {
+        color: var(--text);
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--text);
+        color: var(--bg);
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--text-faint);
+      }
+
+      /* file list */
+      .listhead {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        padding: 0 12px;
+        margin-bottom: -14px;
+        font-size: 13px;
+        color: var(--text-faint);
+      }
+      .listhead strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+      .files {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 168px auto;
+        grid-template-areas: "tile info exp acts";
+        gap: 18px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        border-top: 1px solid var(--divider);
+        animation: rise 0.35s ease-out;
+        transition:
+          background 0.15s,
+          opacity 0.3s;
+      }
+      .row:first-child,
+      .row:hover,
+      .row:hover + .row {
+        border-top-color: transparent;
+      }
+      .row:hover {
+        background: var(--surface-hover);
+      }
+      .row.removing {
+        animation: evaporate 0.3s ease-in forwards;
+      }
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+      }
+      @keyframes evaporate {
+        to {
+          opacity: 0;
+          transform: translateY(-6px);
+          filter: blur(2px);
+        }
+      }
+      .tile {
+        grid-area: tile;
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface-raised);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--text-soft);
+      }
+      .tile img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .info {
+        grid-area: info;
+        min-width: 0;
+      }
+      .name {
+        font-family: var(--mono);
+        font-size: 15px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 3px;
+      }
+      .name.snippet {
+        font-weight: 400;
+        color: #dadcdf;
+      }
+      .name.snippet::before {
+        content: "“";
+        color: var(--accent);
+        margin-right: 2px;
+      }
+      .name.snippet::after {
+        content: "”";
+        color: var(--accent);
+        margin-left: 2px;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--text-faint);
+      }
+      .exp {
+        grid-area: exp;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+      }
+      .left {
+        font-family: var(--mono);
+        font-style: italic;
+        font-size: 13px;
+        color: var(--text-soft);
+      }
+      .track {
+        height: 3px;
+        border-radius: 3px;
+        background: #1d2026;
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--accent);
+        transition: width 1s linear;
+      }
+      .row.warn .left {
+        color: var(--warn);
+      }
+      .row.warn .fill {
+        background: var(--warn);
+      }
+      .row.warn .tile,
+      .row.warn .info {
+        opacity: 0.55;
+      }
+      .acts {
+        grid-area: acts;
+        display: flex;
+        gap: 2px;
+        transition: opacity 0.15s;
+      }
+      @media (hover: hover) {
+        .acts {
+          opacity: 0.55;
+        }
+        .row:hover .acts,
+        .row:focus-within .acts {
+          opacity: 1;
+        }
+      }
+      .ib {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 9px;
+        color: var(--text-soft);
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .ib:hover {
+        background: #1c1f25;
+        color: #fff;
+      }
+      .ib.del:hover {
+        color: var(--danger);
+        background: color-mix(in srgb, var(--danger) 10%, transparent);
+      }
+      .ib.done {
+        color: var(--accent);
+      }
+      .ib.ghost {
+        visibility: hidden;
+      }
+
+      /* empty state */
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        padding: 36px 0 12px;
+        text-align: center;
+      }
+      .ripples {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+      }
+      .ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px solid #1e2228;
+      }
+      .ring:nth-child(1) {
+        inset: 0;
+        border-color: #16191d;
+      }
+      .ring:nth-child(2) {
+        inset: 30px;
+      }
+      .ring:nth-child(3) {
+        inset: 60px;
+        border-color: color-mix(in srgb, var(--accent) 30%, #1e2228);
+      }
+      .empty-title {
+        font-family: var(--mono);
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .empty-text {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text-muted);
+        max-width: 300px;
+      }
+      .ways {
+        display: flex;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      .way {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--text-soft);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 6px 12px 6px 10px;
+      }
+      .way svg {
+        color: var(--text-faint);
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-faint);
+        padding-top: 8px;
+      }
+
+      /* whole-page drop overlay */
+      .veil {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        padding: 28px;
+        background: rgba(8, 9, 11, 0.84);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
         pointer-events: none;
       }
-      .upload-progress {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        height: 3px;
-        width: 0;
-        background: #fff;
-        transition: width 0.1s linear;
-      }
-      .file-list {
-        list-style: none;
-      }
-      .file-item {
-        border-bottom: 1px solid #333;
-        padding: 20px 0;
+      .frame {
+        flex: 1;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        animation: slideIn 0.3s ease-out;
-      }
-      @keyframes slideIn {
-        from {
-          opacity: 0;
-          transform: translateX(-20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-      .file-item.removing {
-        animation: slideOut 0.3s ease-in forwards;
-      }
-      @keyframes slideOut {
-        from {
-          opacity: 1;
-          transform: translateX(0);
-        }
-        to {
-          opacity: 0;
-          transform: translateX(20px);
-        }
-      }
-      .file-info h3 {
-        font-size: 14px;
-        font-weight: 400;
-        margin-bottom: 5px;
-      }
-      .file-meta {
-        font-size: 11px;
-        color: #666;
-      }
-      .file-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-      .btn {
-        background: #fff;
-        color: #000;
-        border: none;
-        padding: 8px 16px;
-        font-size: 12px;
-        text-decoration: none;
-        cursor: pointer;
-        font-family: "Victor Mono", monospace;
-      }
-      .btn:hover {
-        background: #ccc;
-      }
-      .btn-delete {
-        background: #000;
-        color: #fff;
-        border: 1px solid #fff;
-      }
-      .btn-delete:hover {
-        background: #fff;
-        color: #000;
-      }
-      .empty {
+        justify-content: center;
+        gap: 22px;
         text-align: center;
-        padding: 60px 20px;
-        color: #666;
+        border: 2px dashed var(--accent);
+        border-radius: 28px;
+        background: color-mix(in srgb, var(--accent) 4%, transparent);
+      }
+      .frame .bubble {
+        width: 104px;
+        height: 104px;
+        box-shadow: 0 0 0 14px color-mix(in srgb, var(--accent) 5%, transparent);
+        animation: bob 1.8s ease-in-out infinite;
+      }
+      @keyframes bob {
+        50% {
+          transform: translateY(-6px);
+        }
+      }
+      .frame-title {
+        font-family: var(--mono);
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      .frame-sub {
+        font-size: 16px;
+        color: var(--text-muted);
+      }
+      .frame-sub b {
+        color: var(--text);
+        font-weight: 500;
+      }
+
+      /* toast */
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: 28px;
+        z-index: 20;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        max-width: calc(100vw - 32px);
+        padding: 10px 16px 10px 12px;
+        border-radius: 999px;
+        background: var(--text);
+        color: var(--bg);
         font-size: 14px;
+        font-weight: 500;
+        white-space: nowrap;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        animation: rise 0.2s ease-out;
+      }
+      .toast .ok {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--bg);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+      }
+      .toast-detail {
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 400;
+        color: #4a4f57;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      @media (max-width: 640px) {
+        .wrap {
+          padding: 22px 18px 36px;
+          gap: 22px;
+        }
+        .brand img {
+          width: 26px;
+          height: 26px;
+        }
+        .word {
+          font-size: 22px;
+        }
+        .live {
+          border: 0;
+          padding: 0;
+        }
+        .live-label {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+        .live .dot {
+          width: 8px;
+          height: 8px;
+        }
+        .drop {
+          width: calc(100% - 16px);
+          margin: 8px;
+          padding: 20px 18px;
+          gap: 14px;
+        }
+        .bubble {
+          width: 44px;
+          height: 44px;
+        }
+        .drop-title {
+          font-size: 15px;
+          margin-bottom: 3px;
+        }
+        .drop-sub {
+          font-size: 13px;
+        }
+        .foot {
+          padding: 4px 8px 10px;
+        }
+        .keep {
+          flex: 1;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+          font-size: 12px;
+        }
+        .keep > span {
+          padding-left: 4px;
+        }
+        .seg {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          border-radius: 11px;
+        }
+        .seg button {
+          height: 40px;
+          font-size: 14px;
+          border-radius: 8px;
+        }
+        .hint {
+          display: none;
+        }
+        .listhead {
+          padding: 0 2px;
+          margin-bottom: -10px;
+        }
+        .row {
+          grid-template-columns: 40px minmax(0, 1fr) auto;
+          grid-template-areas:
+            "tile info info"
+            ". exp acts";
+          gap: 10px 12px;
+          padding: 14px 2px;
+          border-radius: 0;
+        }
+        .row:hover {
+          background: transparent;
+        }
+        .row:hover,
+        .row:hover + .row {
+          border-top-color: var(--divider);
+        }
+        .row:first-child {
+          border-top-color: transparent;
+        }
+        .tile {
+          width: 40px;
+          height: 40px;
+          font-size: 10px;
+        }
+        .meta {
+          font-size: 12px;
+        }
+        .left {
+          font-size: 12px;
+        }
+        .acts {
+          margin-right: -8px;
+          gap: 0;
+        }
+        .ib {
+          width: 44px;
+          height: 44px;
+        }
+        .ripples {
+          width: 170px;
+          height: 170px;
+        }
+        .ring:nth-child(2) {
+          inset: 26px;
+        }
+        .ring:nth-child(3) {
+          inset: 52px;
+        }
+        .veil {
+          padding: 14px;
+        }
+        .frame-title {
+          font-size: 28px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
       }
     </style>
   </head>
   <body>
-    <header>
-      <img src="/static/drip.png" alt="drip" />
-      <h1>drip</h1>
-    </header>
+    <div class="wrap">
+      <header class="top">
+        <div class="brand">
+          <img src="/static/drip.png" alt="" />
+          <span class="word">drip</span>
+        </div>
+        <div class="live" id="live" role="status">
+          <span class="dot"></span>
+          <span class="live-label" id="liveLabel">connecting</span>
+        </div>
+      </header>
 
-    <div class="upload-options">
-      <label for="expirySelect">expires in</label>
-      <select id="expirySelect">
-        {% for minutes, label in expiry_choices %}
-        <option value="{{ minutes }}" {% if minutes == default_expiry %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
+      <section class="card" aria-label="upload">
+        <button class="drop" id="dropZone" type="button">
+          <span class="water" id="uploadProgress"></span>
+          <span class="bubble" id="dropIcon"></span>
+          <span id="dropIdle">
+            <span class="drop-title">
+              <span class="pointer-only">drop files to upload</span>
+              <span class="touch-only">tap to upload</span>
+            </span>
+            <span class="drop-sub">
+              <span class="pointer-only">
+                or <span class="u">browse</span> · paste files or text with
+                <span class="keys"><kbd id="pasteKey">⌘</kbd> <kbd>V</kbd></span>
+              </span>
+              <span class="touch-only">or share files and text from any app</span>
+            </span>
+          </span>
+          <span class="drop-status" id="dropStatus" role="status" hidden>
+            <span class="drop-title" id="statusTitle"></span>
+            <span class="drop-sub" id="statusDetail"></span>
+          </span>
+        </button>
+        <input type="file" id="fileInput" multiple hidden />
+        <div class="foot">
+          <div class="keep">
+            <span id="keepLabel">keep new items for</span>
+            <div class="seg" id="expiryGroup" role="group" aria-labelledby="keepLabel">
+              {% for minutes, label in expiry_choices %}
+              <button type="button" data-minutes="{{ minutes }}" aria-pressed="{{ 'true' if minutes == default_expiry else 'false' }}">{{ label }}</button>
+              {% endfor %}
+            </div>
+          </div>
+          <span class="hint">then they evaporate</span>
+        </div>
+      </section>
 
-    <div class="upload-zone" id="dropZone">
-      <input type="file" name="file" id="fileInput" multiple />
-      <div class="upload-zone-text" id="dropZoneText">
-        drop, paste or click to upload
+      <div class="listhead" id="listHead" hidden>
+        <span>
+          <strong class="mono" id="itemCount"></strong>
+          <span id="itemNoun"></span> ·
+          <span class="mono" id="totalSize"></span>
+        </span>
+        <span>newest first</span>
       </div>
-      <div class="upload-progress" id="uploadProgress"></div>
+
+      <ul class="files" id="fileList"></ul>
+
+      <div class="empty" id="emptyState" hidden>
+        <div class="ripples" aria-hidden="true">
+          <span class="ring"></span>
+          <span class="ring"></span>
+          <span class="ring"></span>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" /></svg>
+        </div>
+        <p class="empty-title" id="emptyTitle">all dried up</p>
+        <p class="empty-text" id="emptyText">
+          nothing here right now. whatever you add stays until its time runs
+          out, then it's gone for good.
+        </p>
+        <div class="ways">
+          <span class="way">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 20h14" /></svg>
+            pick
+          </span>
+          <span class="way">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M16 5h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2" /></svg>
+            paste
+          </span>
+          <span class="way">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" /></svg>
+            share
+          </span>
+        </div>
+      </div>
+
+      <p class="footer">
+        every item expires on its own · nothing is kept longer than you asked
+      </p>
     </div>
 
-    <ul class="file-list" id="fileList"></ul>
-    <div class="empty" id="emptyState">loading...</div>
+    <div class="veil" id="dragOverlay" hidden>
+      <div class="frame">
+        <span class="bubble" id="dragIcon"></span>
+        <p class="frame-title">let it drip</p>
+        <p class="frame-sub" id="dragInfo"></p>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" hidden>
+      <span class="ok">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10" /></svg>
+      </span>
+      <span id="toastTitle"></span>
+      <span class="toast-detail" id="toastDetail"></span>
+    </div>
 
     <script>
-      const DEFAULT_STATUS = "drop, paste or click to upload";
-      const EXPIRY_STORAGE_KEY = "drip.expiry";
+      const ICON_ATTRS =
+        'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+      const icon = (size, paths) =>
+        `<svg width="${size}" height="${size}" ${ICON_ATTRS}>${paths}</svg>`;
+      const PATHS = {
+        drop: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M12 17v-6"/><path d="M9.5 13.5 12 11l2.5 2.5"/>',
+        alert: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/><path d="M12 10v3.5"/><path d="M12 17h.01"/>',
+        view: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+        link: '<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/>',
+        download: '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+        copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
+        trash: '<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="m6 7 1 13h10l1-13"/><path d="M9 7V4h6v3"/>',
+        lines: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/>',
+        check: '<path d="m5 12 5 5 9-10"/>',
+      };
 
-      const dropZone = document.getElementById("dropZone");
-      const dropZoneText = document.getElementById("dropZoneText");
-      const uploadProgress = document.getElementById("uploadProgress");
-      const fileInput = document.getElementById("fileInput");
-      const expirySelect = document.getElementById("expirySelect");
-      const fileList = document.getElementById("fileList");
-      const emptyState = document.getElementById("emptyState");
+      const EXPIRY_STORAGE_KEY = "drip.expiry";
+      const WARN_LEVEL = 15;
+      const THUMBNAIL_MAX_BYTES = 5 * 1024 * 1024;
+      const THUMBNAIL_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp"]);
+
+      const $ = (id) => document.getElementById(id);
+      const dropZone = $("dropZone");
+      const fileInput = $("fileInput");
+      const fileList = $("fileList");
+      const expiryButtons = [...$("expiryGroup").querySelectorAll("button")];
 
       const currentFiles = new Map();
+      let loaded = false;
       let loadSeq = 0;
       let statusTimer;
+      let toastTimer;
       // Uploads run one after another so status and progress stay coherent.
       let uploadQueue = Promise.resolve();
 
-      async function loadFiles() {
-        // Ignore responses that arrive after a newer request was issued.
-        const seq = ++loadSeq;
-        try {
-          const response = await fetch("/api/files");
-          if (!response.ok) throw new Error(`http ${response.status}`);
-          const files = await response.json();
-          if (seq === loadSeq) renderFiles(files);
-        } catch (error) {
-          if (seq === loadSeq && currentFiles.size === 0) {
-            emptyState.textContent = "error loading files";
-            emptyState.hidden = false;
-          }
+      $("dropIcon").innerHTML = icon(24, PATHS.drop);
+      $("dragIcon").innerHTML = icon(44, PATHS.drop);
+      if (!/Mac|iPhone|iPad/.test(navigator.platform)) {
+        $("pasteKey").textContent = "Ctrl";
+      }
+
+      // ---- formatting -------------------------------------------------------
+
+      function formatSize(bytes) {
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let value = bytes;
+        let unit = 0;
+        while (value >= 1024 && unit < units.length - 1) {
+          value /= 1024;
+          unit++;
         }
+        const digits = unit === 0 || value >= 10 ? 0 : 1;
+        return `${value.toFixed(digits)} ${units[unit]}`;
+      }
+
+      function formatLeft(ms) {
+        if (ms <= 0) return "expiring…";
+        const minutes = Math.ceil(ms / 60000);
+        if (minutes < 60) return `${minutes}m left`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return minutes % 60 ? `${hours}h ${minutes % 60}m left` : `${hours}h left`;
+        const days = Math.floor(hours / 24);
+        return hours % 24 ? `${days}d ${hours % 24}h left` : `${days}d left`;
+      }
+
+      function formatAgo(ms) {
+        const minutes = Math.floor(ms / 60000);
+        if (minutes < 1) return "just now";
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} h ago`;
+        const days = Math.floor(hours / 24);
+        return days === 1 ? "1 day ago" : `${days} days ago`;
       }
 
       function formatTime(iso) {
@@ -252,67 +1040,122 @@
         return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
       }
 
-      function formatRemaining(iso) {
-        const ms = new Date(iso) - Date.now();
-        if (ms <= 0) return "expiring...";
-
-        const minutes = Math.ceil(ms / 60000);
-        if (minutes < 60) return `expires in ${minutes}m`;
-
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `expires in ${hours}h ${minutes % 60}m`;
-
-        return `expires in ${Math.floor(hours / 24)}d ${hours % 24}h`;
+      function plural(count, noun) {
+        return `${count} ${noun}${count === 1 ? "" : "s"}`;
       }
 
-      function updateCountdowns() {
-        for (const element of fileList.querySelectorAll(".countdown")) {
-          element.textContent = formatRemaining(element.dataset.expiresAt);
+      function extension(filename) {
+        const match = /\.([a-z0-9]{1,4})$/i.exec(filename);
+        return match ? match[1].toLowerCase() : "";
+      }
+
+      function describeText(text) {
+        const lines = text.split(/\r\n|\r|\n/);
+        return `${plural(lines.length, "line")} · ${plural([...text].length, "char")}`;
+      }
+
+      // ---- rows -------------------------------------------------------------
+
+      function tileHtml(file) {
+        const ext = extension(file.filename);
+        if (file.kind === "text") {
+          return `<div class="tile text" title="pasted text">${icon(18, PATHS.lines)}</div>`;
         }
+        if (file.previewable && THUMBNAIL_EXTENSIONS.has(ext) && file.size <= THUMBNAIL_MAX_BYTES) {
+          return `<div class="tile"><img src="/view/${encodeURIComponent(file.id)}" alt="" loading="lazy" /></div>`;
+        }
+        return `<div class="tile">${ext ? ext.toUpperCase() : "FILE"}</div>`;
       }
 
-      function createFileElement(file) {
+      function createRow(file) {
         const id = encodeURIComponent(file.id);
+        const canCopyText = file.kind === "text" && typeof file.text === "string";
         const li = document.createElement("li");
-        li.className = "file-item";
-        li.dataset.fileId = file.id;
+        li.className = "row";
         li.innerHTML = `
-          <div class="file-info">
-              <h3>${escapeHtml(file.filename)}</h3>
-              <div class="file-meta">
-                  uploaded: ${formatTime(file.uploaded_at)} |
-                  <span class="countdown" title="${formatTime(file.expires_at)}"></span>
-              </div>
-          </div>
-          <div class="file-actions">
-              ${file.previewable ? `<a href="/view/${id}" class="btn" target="_blank" rel="noopener">view</a>` : ""}
-              <button class="btn btn-copy">copy link</button>
-              <a href="/download/${id}" class="btn">download</a>
-              <button class="btn btn-delete">delete</button>
+          ${tileHtml(file)}
+          <div class="info"><p class="name"></p><p class="meta"></p></div>
+          <div class="exp"><span class="left"></span><div class="track"><div class="fill"></div></div></div>
+          <div class="acts">
+            ${
+              file.previewable
+                ? `<a class="ib" href="/view/${id}" target="_blank" rel="noopener" aria-label="view" title="view">${icon(18, PATHS.view)}</a>`
+                : `<span class="ib ghost" aria-hidden="true"></span>`
+            }
+            <button class="ib copy-link" type="button" aria-label="copy link" title="copy link">${icon(18, PATHS.link)}</button>
+            ${
+              canCopyText
+                ? `<button class="ib copy-text" type="button" aria-label="copy text" title="copy text">${icon(18, PATHS.copy)}</button>`
+                : `<a class="ib" href="/download/${id}" aria-label="download" title="download">${icon(18, PATHS.download)}</a>`
+            }
+            <button class="ib del" type="button" aria-label="delete" title="delete">${icon(18, PATHS.trash)}</button>
           </div>`;
 
-        const countdown = li.querySelector(".countdown");
-        countdown.dataset.expiresAt = file.expires_at;
-        countdown.textContent = formatRemaining(file.expires_at);
+        const name = li.querySelector(".name");
+        if (canCopyText) {
+          const firstLine = file.text.split(/\r\n|\r|\n/).find((line) => line.trim()) || file.text;
+          name.classList.add("snippet");
+          name.textContent = firstLine.trim();
+          name.title = file.text.length > 500 ? `${file.text.slice(0, 500)}…` : file.text;
+        } else {
+          name.textContent = file.filename;
+          name.title = file.filename;
+        }
+        li.querySelector(".exp").title = `expires ${formatTime(file.expires_at)}`;
 
-        const copyButton = li.querySelector(".btn-copy");
-        copyButton.addEventListener("click", () => copyLink(file.id, copyButton));
-        li.querySelector(".btn-delete").addEventListener("click", () =>
-          deleteFile(file.id),
+        const img = li.querySelector(".tile img");
+        if (img) {
+          img.addEventListener("error", () => {
+            img.parentElement.textContent = extension(file.filename).toUpperCase() || "FILE";
+          });
+        }
+
+        const copyLinkButton = li.querySelector(".copy-link");
+        copyLinkButton.addEventListener("click", () => copyLink(file, copyLinkButton));
+        li.querySelector(".copy-text")?.addEventListener("click", (e) =>
+          copyText(file, e.currentTarget),
         );
-        return li;
+        li.querySelector(".del").addEventListener("click", () => deleteFile(file.id));
+
+        const entry = { file, element: li };
+        updateRow(entry, Date.now());
+        return entry;
+      }
+
+      function updateRow({ file, element }, now) {
+        const uploaded = new Date(file.uploaded_at).getTime();
+        const expires = new Date(file.expires_at).getTime();
+        const remaining = expires - now;
+        const level = Math.max(0, Math.min(100, (remaining / (expires - uploaded)) * 100));
+
+        const details =
+          file.kind === "text"
+            ? typeof file.text === "string"
+              ? `text · ${describeText(file.text)}`
+              : `text · ${formatSize(file.size)}`
+            : formatSize(file.size);
+        element.querySelector(".meta").textContent = `${details} · ${formatAgo(now - uploaded)}`;
+        element.querySelector(".left").textContent = formatLeft(remaining);
+        element.querySelector(".fill").style.width = `${level}%`;
+        element.classList.toggle("warn", level <= WARN_LEVEL);
+      }
+
+      function tick() {
+        const now = Date.now();
+        for (const entry of currentFiles.values()) updateRow(entry, now);
       }
 
       function renderFiles(files) {
+        loaded = true;
         const newFileIds = new Set(files.map((f) => f.id));
 
-        for (const [id, element] of currentFiles) {
+        for (const [id, { element }] of currentFiles) {
           if (!newFileIds.has(id)) {
             currentFiles.delete(id);
             element.classList.add("removing");
             setTimeout(() => {
               element.remove();
-              updateEmptyState();
+              updateSummary();
             }, 300);
           }
         }
@@ -321,53 +1164,96 @@
         // entry so existing elements never move (which would replay animations).
         let previous = null;
         for (const file of files) {
-          let element = currentFiles.get(file.id);
-          if (!element) {
-            element = createFileElement(file);
+          let entry = currentFiles.get(file.id);
+          if (!entry) {
+            entry = createRow(file);
             if (previous) {
-              previous.after(element);
+              previous.after(entry.element);
             } else {
-              fileList.prepend(element);
+              fileList.prepend(entry.element);
             }
-            currentFiles.set(file.id, element);
+            currentFiles.set(file.id, entry);
           }
-          previous = element;
+          previous = entry.element;
         }
 
-        updateEmptyState();
+        updateSummary();
       }
 
-      function updateEmptyState() {
-        emptyState.textContent = "no files uploaded yet";
-        emptyState.hidden = fileList.children.length > 0;
+      function updateSummary() {
+        const entries = [...currentFiles.values()];
+        const total = entries.reduce((sum, { file }) => sum + file.size, 0);
+        $("itemCount").textContent = entries.length;
+        $("itemNoun").textContent = entries.length === 1 ? "item" : "items";
+        $("totalSize").textContent = formatSize(total);
+        $("listHead").hidden = entries.length === 0;
+        $("emptyState").hidden = !loaded || fileList.children.length > 0;
       }
 
-      function escapeHtml(text) {
-        const div = document.createElement("div");
-        div.textContent = text;
-        return div.innerHTML;
-      }
-
-      function setStatus(text, resetAfterMs) {
-        clearTimeout(statusTimer);
-        dropZoneText.textContent = text;
-        if (resetAfterMs) {
-          statusTimer = setTimeout(
-            () => (dropZoneText.textContent = DEFAULT_STATUS),
-            resetAfterMs,
-          );
+      async function loadFiles() {
+        // Ignore responses that arrive after a newer request was issued.
+        const seq = ++loadSeq;
+        try {
+          const response = await fetch("/api/files");
+          if (!response.ok) throw new Error(`http ${response.status}`);
+          const files = await response.json();
+          if (seq === loadSeq) {
+            $("emptyTitle").textContent = "all dried up";
+            renderFiles(files);
+          }
+        } catch (error) {
+          if (seq === loadSeq && currentFiles.size === 0) {
+            loaded = true;
+            $("emptyTitle").textContent = "can't reach drip";
+            updateSummary();
+          }
         }
       }
 
-      function flashButton(button, text) {
-        const original = button.dataset.label || button.textContent;
-        button.dataset.label = original;
-        button.textContent = text;
+      // ---- feedback ---------------------------------------------------------
+
+      function showToast(title, detail = "") {
+        clearTimeout(toastTimer);
+        $("toastTitle").textContent = title;
+        $("toastDetail").textContent = detail;
+        $("toast").hidden = false;
+        toastTimer = setTimeout(() => ($("toast").hidden = true), 2000);
+      }
+
+      function flashButton(button) {
+        const original = button.innerHTML;
+        button.classList.add("done");
+        button.innerHTML = icon(18, PATHS.check);
         clearTimeout(button.flashTimer);
-        button.flashTimer = setTimeout(() => (button.textContent = original), 1500);
+        button.flashTimer = setTimeout(() => {
+          button.classList.remove("done");
+          button.innerHTML = original;
+        }, 1500);
       }
 
-      function copyWithTextarea(text) {
+      function setUploadStatus(title, detail, state, resetAfterMs) {
+        clearTimeout(statusTimer);
+        dropZone.classList.toggle("busy", state === "busy");
+        dropZone.classList.toggle("failed", state === "failed");
+        $("dropIcon").innerHTML = icon(24, state === "failed" ? PATHS.alert : PATHS.drop);
+        $("dropIdle").hidden = Boolean(title);
+        $("dropStatus").hidden = !title;
+        $("statusTitle").textContent = title || "";
+        $("statusDetail").textContent = detail || "";
+        if (resetAfterMs) statusTimer = setTimeout(() => setUploadStatus(), resetAfterMs);
+      }
+
+      function setProgress(fraction) {
+        $("uploadProgress").style.width = `${Math.round(fraction * 100)}%`;
+      }
+
+      // ---- clipboard --------------------------------------------------------
+
+      async function writeClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
         // navigator.clipboard needs a secure context, which a plain-http LAN
         // install doesn't have.
         const textarea = document.createElement("textarea");
@@ -381,28 +1267,48 @@
         if (!ok) throw new Error("copy failed");
       }
 
-      async function copyLink(fileId, button) {
-        const url = new URL(`/download/${encodeURIComponent(fileId)}`, location.href).href;
+      async function copyLink(file, button) {
+        const url = new URL(`/download/${encodeURIComponent(file.id)}`, location.href);
         try {
-          if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(url);
-          } else {
-            copyWithTextarea(url);
-          }
-          flashButton(button, "copied");
+          await writeClipboard(url.href);
+          flashButton(button);
+          showToast("link copied", `${url.host}/download/${file.id.slice(0, 8)}…`);
         } catch (error) {
           console.error("copy failed:", error);
-          flashButton(button, "copy failed");
+          showToast("couldn't copy link");
         }
       }
 
-      function postFiles(formData, onProgress) {
+      async function copyText(file, button) {
+        try {
+          await writeClipboard(file.text);
+          flashButton(button);
+          showToast("text copied", describeText(file.text));
+        } catch (error) {
+          console.error("copy failed:", error);
+          showToast("couldn't copy text");
+        }
+      }
+
+      // ---- uploads ----------------------------------------------------------
+
+      function selectedExpiry() {
+        return expiryButtons.find((b) => b.getAttribute("aria-pressed") === "true");
+      }
+
+      function selectExpiry(minutes) {
+        for (const button of expiryButtons) {
+          button.setAttribute("aria-pressed", String(button.dataset.minutes === minutes));
+        }
+      }
+
+      function postForm(formData, onProgress) {
         // XHR rather than fetch, because fetch can't report upload progress.
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("POST", "/upload");
           xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) onProgress(e.loaded / e.total);
+            if (e.lengthComputable) onProgress(e.loaded, e.total);
           };
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) return resolve();
@@ -417,45 +1323,54 @@
         });
       }
 
-      async function sendFiles(files) {
-        const formData = new FormData();
-        formData.append("expires_in", expirySelect.value);
-        for (const file of files) {
-          formData.append("file", file);
-        }
-
-        const label = files.length > 1 ? `uploading ${files.length} files` : "uploading";
-        dropZone.classList.add("uploading");
-        setStatus(`${label}...`);
+      async function send(formData, label) {
+        formData.append("expires_in", selectedExpiry().dataset.minutes);
+        setUploadStatus(label, "starting…", "busy");
+        setProgress(0);
 
         try {
-          await postFiles(formData, (fraction) => {
-            const percent = Math.round(fraction * 100);
-            uploadProgress.style.width = `${percent}%`;
-            setStatus(`${label}... ${percent}%`);
+          await postForm(formData, (sent, total) => {
+            setProgress(sent / total);
+            const percent = Math.round((sent / total) * 100);
+            setUploadStatus(label, `${percent}% · ${formatSize(sent)} of ${formatSize(total)}`, "busy");
           });
-          setStatus(DEFAULT_STATUS);
+          setUploadStatus();
           loadFiles();
         } catch (error) {
-          setStatus(`upload failed: ${error.message}`, 4000);
+          setUploadStatus("upload failed", error.message, "failed", 4000);
         } finally {
-          dropZone.classList.remove("uploading");
-          uploadProgress.style.width = "0";
+          setProgress(0);
         }
+      }
+
+      function enqueue(job) {
+        uploadQueue = uploadQueue.then(job);
       }
 
       function uploadFiles(selected) {
         // Copy now: the FileList may be cleared before this upload's turn.
         const files = Array.from(selected);
         if (files.length === 0) return;
-        uploadQueue = uploadQueue.then(() => sendFiles(files));
+        enqueue(() => {
+          const formData = new FormData();
+          for (const file of files) formData.append("file", file);
+          return send(formData, files.length > 1 ? `uploading ${files.length} files` : "uploading");
+        });
+      }
+
+      function uploadText(text) {
+        enqueue(() => {
+          const formData = new FormData();
+          formData.append("text", text);
+          return send(formData, "saving text");
+        });
       }
 
       async function deleteFile(fileId) {
-        const element = currentFiles.get(fileId);
-        if (!element) return;
+        const entry = currentFiles.get(fileId);
+        if (!entry) return;
 
-        element.classList.add("removing");
+        entry.element.classList.add("removing");
         try {
           const response = await fetch(`/delete/${encodeURIComponent(fileId)}`, {
             method: "POST",
@@ -464,38 +1379,29 @@
           loadFiles();
         } catch (error) {
           console.error("delete failed:", error);
-          element.classList.remove("removing");
+          entry.element.classList.remove("removing");
+          showToast("couldn't delete");
         }
       }
 
+      // ---- events -----------------------------------------------------------
+
       try {
-        const savedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
-        if ([...expirySelect.options].some((o) => o.value === savedExpiry)) {
-          expirySelect.value = savedExpiry;
-        }
+        const saved = localStorage.getItem(EXPIRY_STORAGE_KEY);
+        if (expiryButtons.some((b) => b.dataset.minutes === saved)) selectExpiry(saved);
       } catch {}
 
-      expirySelect.addEventListener("change", () => {
-        try {
-          localStorage.setItem(EXPIRY_STORAGE_KEY, expirySelect.value);
-        } catch {}
-      });
+      for (const button of expiryButtons) {
+        button.addEventListener("click", () => {
+          selectExpiry(button.dataset.minutes);
+          try {
+            localStorage.setItem(EXPIRY_STORAGE_KEY, button.dataset.minutes);
+          } catch {}
+        });
+      }
 
-      dropZone.addEventListener("click", () => fileInput.click());
-
-      dropZone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropZone.classList.add("dragover");
-      });
-
-      dropZone.addEventListener("dragleave", () => {
-        dropZone.classList.remove("dragover");
-      });
-
-      dropZone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropZone.classList.remove("dragover");
-        uploadFiles(e.dataTransfer.files);
+      dropZone.addEventListener("click", () => {
+        if (!dropZone.classList.contains("busy")) fileInput.click();
       });
 
       fileInput.addEventListener("change", () => {
@@ -503,30 +1409,81 @@
         fileInput.value = "";
       });
 
+      // Dragging files anywhere over the page shows the overlay. Child elements
+      // fire their own enter/leave events, so count depth instead of toggling.
+      let dragDepth = 0;
+      const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
+
+      document.addEventListener("dragenter", (e) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        if (dragDepth++ === 0) {
+          const count = [...e.dataTransfer.items].filter((i) => i.kind === "file").length;
+          const what = count > 0 ? plural(count, "file") : "files";
+          $("dragInfo").innerHTML = `<b></b> · kept for <b></b>`;
+          const [countEl, expiryEl] = $("dragInfo").querySelectorAll("b");
+          countEl.textContent = what;
+          expiryEl.textContent = selectedExpiry().textContent;
+          $("dragOverlay").hidden = false;
+        }
+      });
+
+      document.addEventListener("dragover", (e) => {
+        if (isFileDrag(e)) e.preventDefault();
+      });
+
+      document.addEventListener("dragleave", (e) => {
+        if (!isFileDrag(e)) return;
+        if (--dragDepth <= 0) {
+          dragDepth = 0;
+          $("dragOverlay").hidden = true;
+        }
+      });
+
+      document.addEventListener("drop", (e) => {
+        if (!isFileDrag(e)) return;
+        e.preventDefault();
+        dragDepth = 0;
+        $("dragOverlay").hidden = true;
+        uploadFiles(e.dataTransfer.files);
+      });
+
       document.addEventListener("paste", (e) => {
+        if (e.target.closest?.("input, textarea, [contenteditable]")) return;
         const files = e.clipboardData?.files;
         if (files && files.length > 0) {
           e.preventDefault();
           uploadFiles(files);
+          return;
+        }
+        const text = e.clipboardData?.getData("text/plain");
+        if (text && text.trim()) {
+          e.preventDefault();
+          uploadText(text);
         }
       });
+
+      function setLive(on) {
+        $("live").classList.toggle("on", on);
+        $("liveLabel").textContent = on ? "live" : "reconnecting";
+      }
 
       const eventSource = new EventSource("/events");
       eventSource.onmessage = (e) => {
         const event = JSON.parse(e.data);
-        if (event.type === "refresh") {
-          loadFiles();
-        }
+        if (event.type === "refresh") loadFiles();
       };
-
       // Catch up on anything missed while disconnected (e.g. device asleep).
-      eventSource.onopen = () => loadFiles();
-
-      eventSource.onerror = () => {
-        console.log("sse connection lost, reconnecting...");
+      eventSource.onopen = () => {
+        setLive(true);
+        loadFiles();
       };
+      eventSource.onerror = () => setLive(false);
 
-      setInterval(updateCountdowns, 10000);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) tick();
+      });
+      setInterval(tick, 15000);
       loadFiles();
     </script>
   </body>

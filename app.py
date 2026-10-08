@@ -33,6 +33,9 @@ PORT = int(os.environ.get("PORT", "7123"))
 
 EXPIRY_CHECK_INTERVAL = 30
 SSE_HEARTBEAT_INTERVAL = 15
+# Pasted text up to this size is sent along with the file list, so the page can
+# copy it to the clipboard without another request.
+TEXT_INLINE_LIMIT = 100 * 1024
 # Each open tab holds one thread for its event stream, so leave plenty of room.
 SERVER_THREADS = 32
 
@@ -131,30 +134,70 @@ def live_entry(file_id):
     return info
 
 
+def file_size(file_id, info):
+    # Entries written before sizes were recorded don't carry one.
+    if "size" in info:
+        return info["size"]
+    try:
+        return os.path.getsize(upload_path(file_id))
+    except FileNotFoundError:
+        return 0
+
+
+def read_text(file_id):
+    try:
+        with open(upload_path(file_id), encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except FileNotFoundError:
+        return None
+
+
+def add_entries(entries):
+    with metadata_lock:
+        metadata.update(entries)
+        save_metadata()
+
+    broadcast_event("refresh")
+
+
+def new_entry(filename, file_id, kind, now, lifespan):
+    return {
+        "filename": filename,
+        "kind": kind,
+        "size": os.path.getsize(upload_path(file_id)),
+        "uploaded_at": now.isoformat(timespec="seconds"),
+        "expires_at": (now + lifespan).isoformat(timespec="seconds"),
+    }
+
+
 def save_uploads(files, lifespan):
     files = [f for f in files if f.filename]
     if not files:
         return 0
 
     now = utcnow()
-    expires = now + lifespan
-
     entries = {}
     for file in files:
         file_id = os.urandom(16).hex()
         file.save(upload_path(file_id))
-        entries[file_id] = {
-            "filename": file.filename,
-            "uploaded_at": now.isoformat(timespec="seconds"),
-            "expires_at": expires.isoformat(timespec="seconds"),
-        }
+        entries[file_id] = new_entry(file.filename, file_id, "file", now, lifespan)
 
-    with metadata_lock:
-        metadata.update(entries)
-        save_metadata()
-
-    broadcast_event("refresh")
+    add_entries(entries)
     return len(entries)
+
+
+def save_text(text, lifespan):
+    if not text.strip():
+        return False
+
+    now = utcnow()
+    file_id = os.urandom(16).hex()
+    with open(upload_path(file_id), "w", encoding="utf-8") as f:
+        f.write(text)
+
+    filename = f"paste-{now:%Y%m%d-%H%M%S}.txt"
+    add_entries({file_id: new_entry(filename, file_id, "text", now, lifespan)})
+    return True
 
 
 def cleanup_expired():
@@ -232,19 +275,27 @@ def get_files():
         # the same second (timestamps have one-second precision) newest first.
         snapshot = list(reversed(metadata.items()))
 
-    files = [
-        {
+    files = []
+    for file_id, info in sorted(
+        snapshot, key=lambda x: x[1]["uploaded_at"], reverse=True
+    ):
+        if is_expired(info, now):
+            continue
+
+        kind = info.get("kind", "file")
+        size = file_size(file_id, info)
+        item = {
             "id": file_id,
             "filename": info["filename"],
+            "kind": kind,
+            "size": size,
             "uploaded_at": info["uploaded_at"],
             "expires_at": info["expires_at"],
             "previewable": preview_mimetype(info["filename"]) is not None,
         }
-        for file_id, info in sorted(
-            snapshot, key=lambda x: x[1]["uploaded_at"], reverse=True
-        )
-        if not is_expired(info, now)
-    ]
+        if kind == "text":
+            item["text"] = read_text(file_id) if size <= TEXT_INLINE_LIMIT else None
+        files.append(item)
 
     return jsonify(files)
 
@@ -255,7 +306,13 @@ def upload():
     if minutes not in EXPIRY_CHOICES:
         return jsonify({"error": "invalid expiry"}), 400
 
-    if not save_uploads(request.files.getlist("file"), timedelta(minutes=minutes)):
+    lifespan = timedelta(minutes=minutes)
+
+    text = request.form.get("text")
+    if text is not None:
+        if not save_text(text, lifespan):
+            return jsonify({"error": "empty text"}), 400
+    elif not save_uploads(request.files.getlist("file"), lifespan):
         return jsonify({"error": "no file"}), 400
 
     return jsonify({"success": True})
@@ -263,10 +320,17 @@ def upload():
 
 @app.route("/share", methods=["POST"])
 def share():
-    # PWA share target: files shared from the OS land here.
-    save_uploads(
-        request.files.getlist("file"), timedelta(minutes=DEFAULT_EXPIRY_MINUTES)
-    )
+    # PWA share target: files, text and links shared from the OS land here.
+    lifespan = timedelta(minutes=DEFAULT_EXPIRY_MINUTES)
+    if not save_uploads(request.files.getlist("file"), lifespan):
+        parts = []
+        for field in ("title", "text", "url"):
+            value = request.form.get(field, "").strip()
+            # Some platforms repeat the link inside the text; keep it once.
+            if value and not any(value in part for part in parts):
+                parts.append(value)
+        save_text("\n".join(parts), lifespan)
+
     return redirect("/", code=303)
 
 
@@ -279,6 +343,9 @@ def events():
 
     def generate():
         try:
+            # Send something right away: the server only starts the response
+            # (and the browser only fires `open`) once the first chunk arrives.
+            yield "retry: 3000\n\n"
             while True:
                 try:
                     message = client_queue.get(timeout=SSE_HEARTBEAT_INTERVAL)

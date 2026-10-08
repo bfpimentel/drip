@@ -25,7 +25,7 @@ def test_healthz(client):
 def test_index_lists_expiry_choices(client):
     html = client.get("/").get_data(as_text=True)
     for minutes in drip.EXPIRY_CHOICES:
-        assert f'value="{minutes}"' in html
+        assert f'data-minutes="{minutes}"' in html
 
 
 def test_upload_and_list(client, upload, storage):
@@ -202,6 +202,22 @@ def test_share_target(client, storage):
     assert only_file(client)["filename"] == "shared.txt"
 
 
+def test_share_text_and_url(client):
+    response = client.post(
+        "/share",
+        data={
+            "title": "drip",
+            "text": "look at this https://example.com/x",
+            "url": "https://example.com/x",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 303
+    file = only_file(client)
+    assert file["kind"] == "text"
+    assert file["text"] == "drip\nlook at this https://example.com/x"
+
+
 def test_share_without_files_redirects(client):
     response = client.post("/share", data={}, content_type="multipart/form-data")
     assert response.status_code == 303
@@ -231,3 +247,64 @@ def test_format_minutes():
     assert drip.format_minutes(90) == "90m"
     assert drip.format_minutes(120) == "2h"
     assert drip.format_minutes(7 * 24 * 60) == "7d"
+
+
+def test_file_size_is_listed(client, upload):
+    upload(("a.bin", b"x" * 1234))
+    file = only_file(client)
+    assert file["kind"] == "file"
+    assert file["size"] == 1234
+    assert "text" not in file
+
+
+def test_paste_text(client, upload):
+    response = upload(text="hello\nworld", expires_in="10")
+    assert response.status_code == 200
+
+    file = only_file(client)
+    assert file["kind"] == "text"
+    assert file["text"] == "hello\nworld"
+    assert file["size"] == len(b"hello\nworld")
+    assert file["filename"].startswith("paste-")
+    assert file["filename"].endswith(".txt")
+    assert file["previewable"] is True
+
+    download = client.get(f"/download/{file['id']}")
+    assert download.data == b"hello\nworld"
+
+
+def test_paste_unicode_text(client, upload):
+    upload(text="olá — ✓")
+    file = only_file(client)
+    assert file["text"] == "olá — ✓"
+    assert file["size"] == len("olá — ✓".encode())
+
+
+def test_paste_blank_text_is_rejected(client, upload):
+    response = upload(text="   \n ")
+    assert response.status_code == 400
+    assert response.get_json() == {"error": "empty text"}
+
+
+def test_large_text_is_not_inlined(client, upload, monkeypatch):
+    monkeypatch.setattr(drip, "TEXT_INLINE_LIMIT", 10)
+    upload(text="x" * 11)
+    assert only_file(client)["text"] is None
+
+
+def test_entries_without_size_or_kind(client, upload):
+    upload(("old.txt", b"12345"))
+    file_id = only_file(client)["id"]
+    del drip.metadata[file_id]["size"]
+    del drip.metadata[file_id]["kind"]
+
+    file = only_file(client)
+    assert file["size"] == 5
+    assert file["kind"] == "file"
+
+
+def test_event_stream_starts_immediately(client):
+    response = client.get("/events")
+    assert response.mimetype == "text/event-stream"
+    assert next(response.response) == b"retry: 3000\n\n"
+    response.close()

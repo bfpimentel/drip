@@ -3,9 +3,10 @@
 A stupid simple file upload server with real-time updates and auto-expiration.
 
 - Drop, paste or pick files (several at once) with upload progress
-- Choose how long each upload lives; the list counts down to expiry
+- Paste plain text to keep it as a note, and copy it back with one click
+- Choose how long each item lives; the list drains as it nears expiry
 - Copy a download link, or preview images, video, audio, PDFs and text in the browser
-- Share files straight from your phone when installed as a PWA
+- Share files, text and links straight from your phone when installed as a PWA
 - Every open tab updates live
 
 ## Running
@@ -60,7 +61,7 @@ uv run ruff format --check
 
 ### PWA Installation
 
-The app can be installed as a PWA. Use a reverse proxy (nginx, traefik, caddy) with HTTPS to enable the install prompt. Once installed, drip shows up in the system share sheet (on platforms that support Web Share Target, e.g. Android), and shared files are uploaded with the default lifespan.
+The app can be installed as a PWA. Use a reverse proxy (nginx, traefik, caddy) with HTTPS to enable the install prompt. Once installed, drip shows up in the system share sheet (on platforms that support Web Share Target, e.g. Android). Shared files, text and links are saved with the default lifespan.
 
 ## Screenshots
 
