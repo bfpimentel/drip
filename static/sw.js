@@ -1,24 +1,44 @@
-const CACHE_NAME = 'file-upload-v1';
-const urlsToCache = [
-  '/',
-  '/static/manifest.json'
-];
+const CACHE_NAME = "drip-v2";
+const urlsToCache = ["/", "/static/manifest.json", "/static/drip.png"];
 
-self.addEventListener('install', event => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting()),
   );
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)),
+        ),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+// Network-first for the app shell only, so updates show up immediately and the
+// cached copy is just an offline fallback. Everything else (api, events,
+// uploads, downloads) goes straight to the network.
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== "GET" || url.pathname !== "/") {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
+    fetch(event.request)
+      .then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+        return response;
       })
+      .catch(() => caches.match("/")),
   );
 });

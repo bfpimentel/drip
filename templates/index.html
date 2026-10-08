@@ -14,7 +14,14 @@
     />
     <script>
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("/static/sw.js");
+        // Older versions registered the worker under /static/, where it never
+        // controlled the page; drop those registrations.
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations
+            .filter((r) => new URL(r.scope).pathname !== "/")
+            .forEach((r) => r.unregister());
+        });
+        navigator.serviceWorker.register("/sw.js");
       }
     </script>
     <style>
@@ -45,7 +52,25 @@
         font-size: 24px;
         font-weight: 600;
       }
+      .upload-options {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        color: #666;
+      }
+      .upload-options select {
+        background: #000;
+        color: #fff;
+        border: 1px solid #fff;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-family: "Victor Mono", monospace;
+      }
       .upload-zone {
+        position: relative;
         border: 2px dashed #fff;
         padding: 60px 30px;
         margin-bottom: 40px;
@@ -72,6 +97,15 @@
         opacity: 0.5;
         pointer-events: none;
       }
+      .upload-progress {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 3px;
+        width: 0;
+        background: #fff;
+        transition: width 0.1s linear;
+      }
       .file-list {
         list-style: none;
       }
@@ -81,6 +115,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
         animation: slideIn 0.3s ease-out;
       }
       @keyframes slideIn {
@@ -117,6 +153,7 @@
       }
       .file-actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
       }
       .btn {
@@ -155,34 +192,87 @@
       <h1>drip</h1>
     </header>
 
-    <div class="upload-zone" id="dropZone">
-      <input type="file" name="file" id="fileInput" />
-      <div class="upload-zone-text">drop files here or click to upload</div>
+    <div class="upload-options">
+      <label for="expirySelect">expires in</label>
+      <select id="expirySelect">
+        {% for minutes, label in expiry_choices %}
+        <option value="{{ minutes }}" {% if minutes == default_expiry %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
     </div>
 
-    <div id="fileListContainer">
-      <div class="empty">loading...</div>
+    <div class="upload-zone" id="dropZone">
+      <input type="file" name="file" id="fileInput" multiple />
+      <div class="upload-zone-text" id="dropZoneText">
+        drop, paste or click to upload
+      </div>
+      <div class="upload-progress" id="uploadProgress"></div>
     </div>
+
+    <ul class="file-list" id="fileList"></ul>
+    <div class="empty" id="emptyState">loading...</div>
 
     <script>
-      const dropZone = document.getElementById("dropZone");
-      const fileInput = document.getElementById("fileInput");
-      const fileListContainer = document.getElementById("fileListContainer");
+      const DEFAULT_STATUS = "drop, paste or click to upload";
+      const EXPIRY_STORAGE_KEY = "drip.expiry";
 
-      let currentFiles = new Map();
+      const dropZone = document.getElementById("dropZone");
+      const dropZoneText = document.getElementById("dropZoneText");
+      const uploadProgress = document.getElementById("uploadProgress");
+      const fileInput = document.getElementById("fileInput");
+      const expirySelect = document.getElementById("expirySelect");
+      const fileList = document.getElementById("fileList");
+      const emptyState = document.getElementById("emptyState");
+
+      const currentFiles = new Map();
+      let loadSeq = 0;
+      let statusTimer;
+      // Uploads run one after another so status and progress stay coherent.
+      let uploadQueue = Promise.resolve();
 
       async function loadFiles() {
+        // Ignore responses that arrive after a newer request was issued.
+        const seq = ++loadSeq;
         try {
           const response = await fetch("/api/files");
+          if (!response.ok) throw new Error(`http ${response.status}`);
           const files = await response.json();
-          renderFiles(files);
+          if (seq === loadSeq) renderFiles(files);
         } catch (error) {
-          fileListContainer.innerHTML =
-            '<div class="empty">error loading files</div>';
+          if (seq === loadSeq && currentFiles.size === 0) {
+            emptyState.textContent = "error loading files";
+            emptyState.hidden = false;
+          }
+        }
+      }
+
+      function formatTime(iso) {
+        const d = new Date(iso);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function formatRemaining(iso) {
+        const ms = new Date(iso) - Date.now();
+        if (ms <= 0) return "expiring...";
+
+        const minutes = Math.ceil(ms / 60000);
+        if (minutes < 60) return `expires in ${minutes}m`;
+
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `expires in ${hours}h ${minutes % 60}m`;
+
+        return `expires in ${Math.floor(hours / 24)}d ${hours % 24}h`;
+      }
+
+      function updateCountdowns() {
+        for (const element of fileList.querySelectorAll(".countdown")) {
+          element.textContent = formatRemaining(element.dataset.expiresAt);
         }
       }
 
       function createFileElement(file) {
+        const id = encodeURIComponent(file.id);
         const li = document.createElement("li");
         li.className = "file-item";
         li.dataset.fileId = file.id;
@@ -190,58 +280,66 @@
           <div class="file-info">
               <h3>${escapeHtml(file.filename)}</h3>
               <div class="file-meta">
-                  uploaded: ${file.uploaded_at} |
-                  expires: ${file.expires_at}
+                  uploaded: ${formatTime(file.uploaded_at)} |
+                  <span class="countdown" title="${formatTime(file.expires_at)}"></span>
               </div>
           </div>
           <div class="file-actions">
-              <a href="/download/${file.id}" class="btn">download</a>
-              <button class="btn btn-delete" onclick="deleteFile('${file.id}')">delete</button>
+              ${file.previewable ? `<a href="/view/${id}" class="btn" target="_blank" rel="noopener">view</a>` : ""}
+              <button class="btn btn-copy">copy link</button>
+              <a href="/download/${id}" class="btn">download</a>
+              <button class="btn btn-delete">delete</button>
           </div>`;
+
+        const countdown = li.querySelector(".countdown");
+        countdown.dataset.expiresAt = file.expires_at;
+        countdown.textContent = formatRemaining(file.expires_at);
+
+        const copyButton = li.querySelector(".btn-copy");
+        copyButton.addEventListener("click", () => copyLink(file.id, copyButton));
+        li.querySelector(".btn-delete").addEventListener("click", () =>
+          deleteFile(file.id),
+        );
         return li;
       }
 
       function renderFiles(files) {
         const newFileIds = new Set(files.map((f) => f.id));
-        const oldFileIds = new Set(currentFiles.keys());
 
-        oldFileIds.forEach((id) => {
+        for (const [id, element] of currentFiles) {
           if (!newFileIds.has(id)) {
-            const element = currentFiles.get(id);
+            currentFiles.delete(id);
             element.classList.add("removing");
             setTimeout(() => {
               element.remove();
-              currentFiles.delete(id);
+              updateEmptyState();
             }, 300);
           }
-        });
-
-        const list =
-          document.querySelector(".file-list") || document.createElement("ul");
-        if (!list.className) {
-          list.className = "file-list";
-          fileListContainer.innerHTML = "";
-          fileListContainer.appendChild(list);
         }
 
-        if (files.length === 0 && oldFileIds.size === 0) {
-          fileListContainer.innerHTML =
-            '<div class="empty">no files uploaded yet</div>';
-          currentFiles.clear();
-          return;
-        }
-
-        files.forEach((file, index) => {
-          if (!oldFileIds.has(file.id)) {
-            const element = createFileElement(file);
-            if (index < list.children.length) {
-              list.insertBefore(element, list.children[index]);
+        // Files arrive newest first; insert new ones right after the previous
+        // entry so existing elements never move (which would replay animations).
+        let previous = null;
+        for (const file of files) {
+          let element = currentFiles.get(file.id);
+          if (!element) {
+            element = createFileElement(file);
+            if (previous) {
+              previous.after(element);
             } else {
-              list.appendChild(element);
+              fileList.prepend(element);
             }
             currentFiles.set(file.id, element);
           }
-        });
+          previous = element;
+        }
+
+        updateEmptyState();
+      }
+
+      function updateEmptyState() {
+        emptyState.textContent = "no files uploaded yet";
+        emptyState.hidden = fileList.children.length > 0;
       }
 
       function escapeHtml(text) {
@@ -250,37 +348,138 @@
         return div.innerHTML;
       }
 
-      async function uploadFile(file) {
-        dropZone.classList.add("uploading");
+      function setStatus(text, resetAfterMs) {
+        clearTimeout(statusTimer);
+        dropZoneText.textContent = text;
+        if (resetAfterMs) {
+          statusTimer = setTimeout(
+            () => (dropZoneText.textContent = DEFAULT_STATUS),
+            resetAfterMs,
+          );
+        }
+      }
+
+      function flashButton(button, text) {
+        const original = button.dataset.label || button.textContent;
+        button.dataset.label = original;
+        button.textContent = text;
+        clearTimeout(button.flashTimer);
+        button.flashTimer = setTimeout(() => (button.textContent = original), 1500);
+      }
+
+      function copyWithTextarea(text) {
+        // navigator.clipboard needs a secure context, which a plain-http LAN
+        // install doesn't have.
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand("copy");
+        textarea.remove();
+        if (!ok) throw new Error("copy failed");
+      }
+
+      async function copyLink(fileId, button) {
+        const url = new URL(`/download/${encodeURIComponent(fileId)}`, location.href).href;
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(url);
+          } else {
+            copyWithTextarea(url);
+          }
+          flashButton(button, "copied");
+        } catch (error) {
+          console.error("copy failed:", error);
+          flashButton(button, "copy failed");
+        }
+      }
+
+      function postFiles(formData, onProgress) {
+        // XHR rather than fetch, because fetch can't report upload progress.
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "/upload");
+          xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) onProgress(e.loaded / e.total);
+          };
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) return resolve();
+            let message;
+            try {
+              message = JSON.parse(xhr.responseText).error;
+            } catch {}
+            reject(new Error(message || `http ${xhr.status}`));
+          };
+          xhr.onerror = () => reject(new Error("network error"));
+          xhr.send(formData);
+        });
+      }
+
+      async function sendFiles(files) {
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("expires_in", expirySelect.value);
+        for (const file of files) {
+          formData.append("file", file);
+        }
+
+        const label = files.length > 1 ? `uploading ${files.length} files` : "uploading";
+        dropZone.classList.add("uploading");
+        setStatus(`${label}...`);
 
         try {
-          await fetch("/upload", {
-            method: "POST",
-            body: formData,
+          await postFiles(formData, (fraction) => {
+            const percent = Math.round(fraction * 100);
+            uploadProgress.style.width = `${percent}%`;
+            setStatus(`${label}... ${percent}%`);
           });
+          setStatus(DEFAULT_STATUS);
+          loadFiles();
+        } catch (error) {
+          setStatus(`upload failed: ${error.message}`, 4000);
         } finally {
           dropZone.classList.remove("uploading");
-          fileInput.value = "";
+          uploadProgress.style.width = "0";
         }
+      }
+
+      function uploadFiles(selected) {
+        // Copy now: the FileList may be cleared before this upload's turn.
+        const files = Array.from(selected);
+        if (files.length === 0) return;
+        uploadQueue = uploadQueue.then(() => sendFiles(files));
       }
 
       async function deleteFile(fileId) {
         const element = currentFiles.get(fileId);
-        if (element) {
-          element.classList.add("removing");
-          setTimeout(async () => {
-            try {
-              await fetch(`/delete/${fileId}`, {
-                method: "POST",
-              });
-            } catch (error) {
-              console.error("delete failed:", error);
-            }
-          }, 300);
+        if (!element) return;
+
+        element.classList.add("removing");
+        try {
+          const response = await fetch(`/delete/${encodeURIComponent(fileId)}`, {
+            method: "POST",
+          });
+          if (!response.ok) throw new Error(`http ${response.status}`);
+          loadFiles();
+        } catch (error) {
+          console.error("delete failed:", error);
+          element.classList.remove("removing");
         }
       }
+
+      try {
+        const savedExpiry = localStorage.getItem(EXPIRY_STORAGE_KEY);
+        if ([...expirySelect.options].some((o) => o.value === savedExpiry)) {
+          expirySelect.value = savedExpiry;
+        }
+      } catch {}
+
+      expirySelect.addEventListener("change", () => {
+        try {
+          localStorage.setItem(EXPIRY_STORAGE_KEY, expirySelect.value);
+        } catch {}
+      });
 
       dropZone.addEventListener("click", () => fileInput.click());
 
@@ -296,16 +495,19 @@
       dropZone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropZone.classList.remove("dragover");
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          uploadFile(files[0]);
-        }
+        uploadFiles(e.dataTransfer.files);
       });
 
       fileInput.addEventListener("change", () => {
-        if (fileInput.files.length > 0) {
-          uploadFile(fileInput.files[0]);
+        uploadFiles(fileInput.files);
+        fileInput.value = "";
+      });
+
+      document.addEventListener("paste", (e) => {
+        const files = e.clipboardData?.files;
+        if (files && files.length > 0) {
+          e.preventDefault();
+          uploadFiles(files);
         }
       });
 
@@ -317,10 +519,14 @@
         }
       };
 
+      // Catch up on anything missed while disconnected (e.g. device asleep).
+      eventSource.onopen = () => loadFiles();
+
       eventSource.onerror = () => {
         console.log("sse connection lost, reconnecting...");
       };
 
+      setInterval(updateCountdowns, 10000);
       loadFiles();
     </script>
   </body>

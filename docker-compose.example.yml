@@ -6,5 +6,5 @@ services:
     ports:
       - "7123:7123"
     volumes:
-      - ./uploads:/app/uploads
-      - ./data:/app/data
+      - .local/uploads:/app/uploads
+      - .local/data:/app/data

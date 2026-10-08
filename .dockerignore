@@ -27,10 +27,10 @@ venv/
 
 # Keep .env for Docker defaults
 # .env
-.envrc
 
 uploads/
-uploaded.json
+data/
+.local/
 
 .github/
 *.md
