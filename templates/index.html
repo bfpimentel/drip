@@ -23,8 +23,7 @@
     />
     <script>
       if ("serviceWorker" in navigator) {
-        // Older versions registered the worker under /static/, where it never
-        // controlled the page; drop those registrations.
+        // Older versions registered the worker under /static/, where it never applied.
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations
             .filter((r) => new URL(r.scope).pathname !== "/")
@@ -141,7 +140,6 @@
         gap: 28px;
       }
 
-      /* header */
       .top {
         display: flex;
         align-items: center;
@@ -193,7 +191,6 @@
         }
       }
 
-      /* upload card */
       .card {
         border: 1px solid var(--border);
         border-radius: 18px;
@@ -360,7 +357,6 @@
         color: var(--text-faint);
       }
 
-      /* file list */
       .listhead {
         display: flex;
         align-items: baseline;
@@ -549,7 +545,6 @@
         visibility: hidden;
       }
 
-      /* empty state */
       .empty {
         display: flex;
         flex-direction: column;
@@ -619,7 +614,6 @@
         padding-top: 8px;
       }
 
-      /* whole-page drop overlay */
       .veil {
         position: fixed;
         inset: 0;
@@ -669,7 +663,6 @@
         font-weight: 500;
       }
 
-      /* toast */
       .toast {
         position: fixed;
         left: 50%;
@@ -991,7 +984,6 @@
       let loadSeq = 0;
       let statusTimer;
       let toastTimer;
-      // Uploads run one after another so status and progress stay coherent.
       let uploadQueue = Promise.resolve();
 
       $("dropIcon").innerHTML = icon(24, PATHS.drop);
@@ -999,8 +991,6 @@
       if (!/Mac|iPhone|iPad/.test(navigator.platform)) {
         $("pasteKey").textContent = "Ctrl";
       }
-
-      // ---- formatting -------------------------------------------------------
 
       function formatSize(bytes) {
         const units = ["B", "KB", "MB", "GB", "TB"];
@@ -1053,8 +1043,6 @@
         const lines = text.split(/\r\n|\r|\n/);
         return `${plural(lines.length, "line")} · ${plural([...text].length, "char")}`;
       }
-
-      // ---- rows -------------------------------------------------------------
 
       function tileHtml(file) {
         const ext = extension(file.filename);
@@ -1160,8 +1148,7 @@
           }
         }
 
-        // Files arrive newest first; insert new ones right after the previous
-        // entry so existing elements never move (which would replay animations).
+        // Insert after the previous entry so existing rows never move and replay animations.
         let previous = null;
         for (const file of files) {
           let entry = currentFiles.get(file.id);
@@ -1191,7 +1178,6 @@
       }
 
       async function loadFiles() {
-        // Ignore responses that arrive after a newer request was issued.
         const seq = ++loadSeq;
         try {
           const response = await fetch("/api/files");
@@ -1209,8 +1195,6 @@
           }
         }
       }
-
-      // ---- feedback ---------------------------------------------------------
 
       function showToast(title, detail = "") {
         clearTimeout(toastTimer);
@@ -1247,15 +1231,12 @@
         $("uploadProgress").style.width = `${Math.round(fraction * 100)}%`;
       }
 
-      // ---- clipboard --------------------------------------------------------
-
       async function writeClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
           return;
         }
-        // navigator.clipboard needs a secure context, which a plain-http LAN
-        // install doesn't have.
+        // navigator.clipboard needs a secure context, which plain-http installs lack.
         const textarea = document.createElement("textarea");
         textarea.value = text;
         textarea.style.position = "fixed";
@@ -1290,8 +1271,6 @@
         }
       }
 
-      // ---- uploads ----------------------------------------------------------
-
       function selectedExpiry() {
         return expiryButtons.find((b) => b.getAttribute("aria-pressed") === "true");
       }
@@ -1303,7 +1282,7 @@
       }
 
       function postForm(formData, onProgress) {
-        // XHR rather than fetch, because fetch can't report upload progress.
+        // fetch can't report upload progress.
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
           xhr.open("POST", "/upload");
@@ -1348,7 +1327,7 @@
       }
 
       function uploadFiles(selected) {
-        // Copy now: the FileList may be cleared before this upload's turn.
+        // The FileList may be cleared before this upload's turn.
         const files = Array.from(selected);
         if (files.length === 0) return;
         enqueue(() => {
@@ -1384,8 +1363,6 @@
         }
       }
 
-      // ---- events -----------------------------------------------------------
-
       try {
         const saved = localStorage.getItem(EXPIRY_STORAGE_KEY);
         if (expiryButtons.some((b) => b.dataset.minutes === saved)) selectExpiry(saved);
@@ -1409,8 +1386,7 @@
         fileInput.value = "";
       });
 
-      // Dragging files anywhere over the page shows the overlay. Child elements
-      // fire their own enter/leave events, so count depth instead of toggling.
+      // Child elements fire their own enter/leave events, so track depth.
       let dragDepth = 0;
       const isFileDrag = (e) => e.dataTransfer && [...e.dataTransfer.types].includes("Files");
 
@@ -1473,7 +1449,7 @@
         const event = JSON.parse(e.data);
         if (event.type === "refresh") loadFiles();
       };
-      // Catch up on anything missed while disconnected (e.g. device asleep).
+      // Catch up on anything missed while disconnected.
       eventSource.onopen = () => {
         setLive(true);
         loadFiles();

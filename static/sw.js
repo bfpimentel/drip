@@ -23,9 +23,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for the app shell only, so updates show up immediately and the
-// cached copy is just an offline fallback. Everything else (api, events,
-// uploads, downloads) goes straight to the network.
+// Only the app shell is cached, as an offline fallback.
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
   if (event.request.method !== "GET" || url.pathname !== "/") {

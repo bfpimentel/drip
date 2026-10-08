@@ -33,22 +33,20 @@ PORT = int(os.environ.get("PORT", "7123"))
 
 EXPIRY_CHECK_INTERVAL = 30
 SSE_HEARTBEAT_INTERVAL = 15
-# Pasted text up to this size is sent along with the file list, so the page can
-# copy it to the clipboard without another request.
+# Small pastes ship with the file list so the page can copy them without a fetch.
 TEXT_INLINE_LIMIT = 100 * 1024
 # Each open tab holds one thread for its event stream, so leave plenty of room.
 SERVER_THREADS = 32
 
-# Lifespans offered in the UI, in minutes. The configured default is always one.
 DEFAULT_EXPIRY_MINUTES = max(1, round(FILE_LIFESPAN_HOURS * 60))
 EXPIRY_CHOICES = sorted({10, 60, 24 * 60, 7 * 24 * 60, DEFAULT_EXPIRY_MINUTES})
 
 FILE_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 
-# Types that are safe to show inline. SVG is left out because it can run scripts.
+# SVG is left out because it can run scripts.
 INLINE_TYPE_PREFIXES = ("image/", "video/", "audio/")
 INLINE_TYPES = {"application/pdf"}
-# Shown as plain text, so markup (including HTML) is never rendered.
+# Served as text/plain so markup is never rendered.
 TEXT_LIKE_TYPES = {"application/json", "application/xml", "application/javascript"}
 
 app = Flask(__name__)
@@ -112,7 +110,6 @@ def load_metadata():
 
 
 def save_metadata():
-    # Write to a temp file and swap it in so readers never see a partial file.
     tmp_file = f"{METADATA_FILE}.tmp"
     with open(tmp_file, "w") as f:
         json.dump(metadata, f, indent=2)
@@ -135,7 +132,6 @@ def live_entry(file_id):
 
 
 def file_size(file_id, info):
-    # Entries written before sizes were recorded don't carry one.
     if "size" in info:
         return info["size"]
     try:
@@ -228,7 +224,6 @@ def init_storage():
         metadata.clear()
         metadata.update(load_metadata())
 
-        # Drop entries whose file is gone, and files no entry points to.
         for file_id in [
             fid for fid in metadata if not os.path.isfile(upload_path(fid))
         ]:
@@ -271,8 +266,6 @@ def service_worker():
 def get_files():
     now = utcnow()
     with metadata_lock:
-        # Newest insertions first, so the stable sort below keeps uploads from
-        # the same second (timestamps have one-second precision) newest first.
         snapshot = list(reversed(metadata.items()))
 
     files = []
@@ -320,7 +313,7 @@ def upload():
 
 @app.route("/share", methods=["POST"])
 def share():
-    # PWA share target: files, text and links shared from the OS land here.
+    # PWA share target.
     lifespan = timedelta(minutes=DEFAULT_EXPIRY_MINUTES)
     if not save_uploads(request.files.getlist("file"), lifespan):
         parts = []
@@ -343,15 +336,13 @@ def events():
 
     def generate():
         try:
-            # Send something right away: the server only starts the response
-            # (and the browser only fires `open`) once the first chunk arrives.
+            # Waitress only starts the response once the first chunk arrives.
             yield "retry: 3000\n\n"
             while True:
                 try:
                     message = client_queue.get(timeout=SSE_HEARTBEAT_INTERVAL)
                 except queue.Empty:
-                    # Comment line: keeps proxies from timing out and lets us
-                    # notice disconnected clients even when nothing happens.
+                    # Keeps proxies from timing out and detects disconnected clients.
                     yield ": ping\n\n"
                     continue
                 yield f"data: {message}\n\n"

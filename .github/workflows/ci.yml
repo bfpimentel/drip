@@ -35,6 +35,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - name: Check tag matches project version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml)"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match pyproject.toml version $version"
+            exit 1
+          fi
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -55,6 +64,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref_name, 'v0.') }}
             type=sha,prefix=,suffix=,format=short
       - name: Build and push Docker image
         uses: docker/build-push-action@v6

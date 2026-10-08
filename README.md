@@ -1,6 +1,6 @@
 # drip
 
-A stupid simple file upload server with real-time updates and auto-expiration.
+A stupid simple self-hosted drop for files and text, with real-time updates and auto-expiration.
 
 - Drop, paste or pick files (several at once) with upload progress
 - Paste plain text to keep it as a note, and copy it back with one click
@@ -26,7 +26,7 @@ services:
       - ./data:/app/data
 ```
 
-Files are removed automatically once they expire. Uploads and their metadata survive restarts as long as both volumes are mounted.
+Items are removed automatically once they expire. Uploads and their metadata survive restarts as long as both volumes are mounted.
 
 The container runs as UID 1000, so the mounted directories must be writable by it (`chown -R 1000:1000 uploads data`). With rootless Podman, add `:U` to the volume options instead (e.g. `./uploads:/app/uploads:U`).
 
@@ -65,4 +65,22 @@ The app can be installed as a PWA. Use a reverse proxy (nginx, traefik, caddy) w
 
 ## Screenshots
 
-![drip.png](./resources/drip.png)
+<p align="center">
+  <img src="./resources/drip.png" alt="drip on desktop: upload card, lifespan picker and a list of files and a pasted note with expiry bars" width="800" />
+  <br />
+  <em>desktop</em>
+</p>
+
+<p align="center">
+  <img src="./resources/drip-mobile.png" alt="drip on a phone: tap to upload, lifespan picker and the item list" width="320" />
+  <br />
+  <em>mobile</em>
+</p>
+
+## Credits
+
+Bundles the [Iosevka](https://github.com/be5invis/Iosevka) and [Geist](https://github.com/vercel/geist-font) fonts, both under the SIL Open Font License (see `static/fonts/`).
+
+## AI Disclaimer
+
+The core part of the app (server) has been written by hand, but an AI agent has been used to develop the frontend (web page). All the code is human-reviewed before being pushed.
